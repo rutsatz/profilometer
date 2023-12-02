@@ -1,4 +1,4 @@
-module com.profilometer.profilometer {
+module com.profilometer {
     requires javafx.controls;
     requires javafx.fxml;
 
@@ -6,6 +6,12 @@ module com.profilometer.profilometer {
     requires net.synedra.validatorfx;
     requires org.kordamp.ikonli.javafx;
 
-    opens com.profilometer.profilometer to javafx.fxml;
-    exports com.profilometer.profilometer;
+    requires com.fasterxml.jackson.databind;
+    requires org.apache.commons.lang3;
+
+
+    opens com.profilometer to javafx.fxml;
+    exports com.profilometer;
+    exports com.profilometer.config;
+    exports com.profilometer.controller;
 }
