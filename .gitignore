@@ -1,6 +1,9 @@
 .config
 in/
 out/
+images/
+images_out/
+opencv/
 
 # Created by https://www.toptal.com/developers/gitignore/api/java,gradle,intellij,linux,macos,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,gradle,intellij,linux,macos,windows

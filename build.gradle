@@ -2,8 +2,8 @@ plugins {
     id 'java'
     id 'application'
     id 'org.javamodularity.moduleplugin' version '1.8.12'
-    id 'org.openjfx.javafxplugin' version '0.0.13'
-    id 'org.beryx.jlink' version '2.25.0'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'org.beryx.jlink' version '3.0.1'
 }
 
 group 'com.profilometer'
@@ -35,8 +35,8 @@ javafx {
 }
 
 dependencies {
-    implementation('org.controlsfx:controlsfx:11.1.2')
-    implementation('net.synedra:validatorfx:0.4.0') {
+    implementation('org.controlsfx:controlsfx:11.2.0')
+    implementation('net.synedra:validatorfx:0.4.2') {
         exclude(group: 'org.openjfx')
     }
     implementation('org.kordamp.ikonli:ikonli-javafx:12.3.1')
@@ -46,6 +46,13 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.16.0'
 
     implementation 'org.apache.commons:commons-lang3:3.14.0'
+
+    // https://github.com/openpnp/opencv
+    implementation 'org.openpnp:opencv:4.7.0-0'
+
+    // http://bytedeco.org/
+//    implementation 'org.bytedeco:opencv:4.7.0-1.5.9'
+
 
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")

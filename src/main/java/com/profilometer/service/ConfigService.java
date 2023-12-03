@@ -50,8 +50,18 @@ public class ConfigService {
         }
     }
 
+    private static void createOutFolder() {
+        File outputFolder = config.getOutputFolder();
+        if (!outputFolder.exists()) {
+            if (!outputFolder.mkdir()) {
+                System.out.println("Error creating output folder");
+            }
+        }
+    }
+
     private static void updateInputFolder(Path inputFolder) {
         config.setInputFolder(inputFolder.toAbsolutePath().toString());
+        createOutFolder();
         saveConfig();
     }
 

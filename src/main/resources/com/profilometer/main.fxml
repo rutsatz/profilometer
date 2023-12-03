@@ -53,7 +53,7 @@
       <menus>
         <Menu mnemonicParsing="false" text="File">
           <items>
-            <MenuItem mnemonicParsing="false" onAction="#menuFileOpen" text="Open…" />
+            <MenuItem mnemonicParsing="false" onAction="#menuFileOpen" text="Open input folder…" />
             <Menu mnemonicParsing="false" text="Open Recent" />
             <SeparatorMenuItem mnemonicParsing="false" />
             <MenuItem mnemonicParsing="false" text="Close" />
