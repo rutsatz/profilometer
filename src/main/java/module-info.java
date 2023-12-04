@@ -8,8 +8,9 @@ module com.profilometer {
 
     requires com.fasterxml.jackson.databind;
     requires org.apache.commons.lang3;
-    requires opencv;
 
+    requires opencv;
+    requires javafx.swing;
 
     opens com.profilometer to javafx.fxml;
 
