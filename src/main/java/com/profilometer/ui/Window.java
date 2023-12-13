@@ -24,7 +24,8 @@ public class Window {
 
         ImageView imageView = new ImageView(image);
         imageView.setPreserveRatio(true);
-        imageView.fitHeightProperty().bind(heightProperty);
+//        imageView.fitHeightProperty().bind(heightProperty);
+        imageView.fitWidthProperty().bind(heightProperty);
 
         updateUi(() -> {
             vbImages.getChildren().add(new Label(name));

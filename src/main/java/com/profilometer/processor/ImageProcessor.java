@@ -26,6 +26,7 @@ public class ImageProcessor {
 
     public void process(String imageFile, IntegerProperty heightProperty, boolean blur, int blurKernel,
                         boolean segmentation, int sobelKernel, double segmentationMinThreshold) {
+        // ### Original ###
         Mat src = Imgcodecs.imread(imageFile);
         if (src.empty()) {
             System.err.println("Cannot read image: " + imageFile);
@@ -33,20 +34,29 @@ public class ImageProcessor {
         }
         Window.addImage(src, "Original Image", heightProperty);
 
+
         // ### Gray ###
         Mat srcGray = new Mat();
         Imgproc.cvtColor(src, srcGray, Imgproc.COLOR_BGR2GRAY);
         Window.addImage(srcGray, "Gray Image", heightProperty);
 
+
+        // ### Crop ###
+        Rect roi = new Rect(0, srcGray.rows() / 2, srcGray.cols(), srcGray.rows() / 2);
+        Mat croppedImage = new Mat(srcGray, roi);
+        Window.addImage(croppedImage, "ROI Image", heightProperty);
+
+
         // ### Blur ###
         Mat blurSrc = new Mat();
         if (blur) {
             Size blurKernelSize = new Size(blurKernel, blurKernel);
-            Imgproc.blur(srcGray, blurSrc, blurKernelSize);
+            Imgproc.blur(croppedImage, blurSrc, blurKernelSize);
             Window.addImage(blurSrc, "Blur", heightProperty);
         } else {
-            srcGray.copyTo(blurSrc);
+            croppedImage.copyTo(blurSrc);
         }
+
 
         // ### Segmentation (Canny) ###
         // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
@@ -61,6 +71,7 @@ public class ImageProcessor {
         } else {
             blurSrc.copyTo(cannySrc);
         }
+
 
         // ### Contours ###
         // https://opencv-java-tutorials.readthedocs.io/en/latest/08-object-detection.html

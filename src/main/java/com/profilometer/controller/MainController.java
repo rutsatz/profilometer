@@ -69,7 +69,7 @@ public class MainController {
 
         imageHeight.bind(spinnerImageHeight.valueProperty());
         spinnerImageHeight.setValueFactory(new SpinnerValueFactory
-                .IntegerSpinnerValueFactory(50, 4_000, 100, 10));
+                .IntegerSpinnerValueFactory(50, 8_000, 500, 50));
 
         blurEnabled.bind(ckBlurEnabled.selectedProperty());
         spinnerBlurKernelSize.disableProperty().bind(blurEnabled.not());
