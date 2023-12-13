@@ -39,7 +39,7 @@ For unzip, set the workdir as `/bin`.
 Use JavaFX 21 as the default JVM. Otherwise, update the distribution script to
 export JAVA_HOME using the provided JVM.
 
-`export JAVA_HOME="./jvm"`
+Windows x64: `set JAVA_HOME=../zulu21jre-win`
 
 ### Run
 
