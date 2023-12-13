@@ -34,6 +34,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Menu?>
@@ -41,6 +42,7 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
@@ -49,42 +51,20 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
+<VBox prefHeight="600.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
         <Menu mnemonicParsing="false" text="File">
           <items>
             <MenuItem mnemonicParsing="false" onAction="#menuFileOpen" text="Open input folder…" />
-            <Menu mnemonicParsing="false" text="Open Recent" />
             <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Close" />
-            <MenuItem mnemonicParsing="false" text="Save" />
-            <MenuItem mnemonicParsing="false" text="Save As…" />
-            <MenuItem mnemonicParsing="false" text="Revert" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Preferences…" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Quit" />
-          </items>
-        </Menu>
-        <Menu mnemonicParsing="false" text="Edit">
-          <items>
-            <MenuItem mnemonicParsing="false" text="Undo" />
-            <MenuItem mnemonicParsing="false" text="Redo" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Cut" />
-            <MenuItem mnemonicParsing="false" text="Copy" />
-            <MenuItem mnemonicParsing="false" text="Paste" />
-            <MenuItem mnemonicParsing="false" text="Delete" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Select All" />
-            <MenuItem mnemonicParsing="false" text="Unselect All" />
+            <MenuItem mnemonicParsing="false" onAction="#menuFileQuit" text="Quit" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="Help">
           <items>
-            <MenuItem mnemonicParsing="false" text="About MyHelloApp" />
+            <MenuItem mnemonicParsing="false" text="About" />
           </items>
         </Menu>
       </menus>
@@ -120,16 +100,47 @@
                   </VBox>
           </content>
         </ScrollPane>
-        <AnchorPane>
-          <children>
-            <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Details" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-          </children>
-        </AnchorPane>
+            <AnchorPane>
+               <children>
+                  <Label alignment="CENTER" style="&#10;" text="Details" textAlignment="CENTER" wrapText="false">
+                     <font>
+                        <Font size="18.0" fx:id="x11" />
+                     </font>
+                     <textFill>
+                        <Color red="0.624" green="0.624" blue="0.624" fx:id="x21" />
+                     </textFill>
+                  </Label>
+                  <Pane id="pane" layoutX="11.0" layoutY="112.0" prefHeight="79.0" prefWidth="200.0" styleClass="pane">
+                     <children>
+                        <Spinner fx:id="spinnerBlurKernelSize" editable="true" layoutX="89.0" layoutY="39.0" prefHeight="24.0" prefWidth="97.0" />
+                        <Label layoutX="15.0" layoutY="14.0" text="Blur" />
+                        <CheckBox fx:id="ckBlurEnabled" layoutX="109.0" layoutY="13.0" mnemonicParsing="false" selected="true" text="Enabled" />
+                        <Label layoutX="15.0" layoutY="43.0" text="Kernel" />
+                     </children>
+                  </Pane>
+                  <Pane id="pane" layoutX="11.0" layoutY="198.0" prefHeight="107.0" prefWidth="200.0" styleClass="pane">
+                     <children>
+                        <Spinner fx:id="spinnerSobelKernelSize" editable="true" layoutX="89.0" layoutY="39.0" prefHeight="24.0" prefWidth="97.0" />
+                        <Label layoutX="15.0" layoutY="14.0" text="Segmentation" />
+                        <CheckBox fx:id="ckSegmentationEnabled" layoutX="113.0" layoutY="13.0" mnemonicParsing="false" selected="true" text="Enabled" />
+                        <Label layoutX="15.0" layoutY="43.0" text="Kernel" />
+                        <Label layoutX="15.0" layoutY="71.0" text="Threshold" />
+                        <Spinner fx:id="spinnerSegmentationThreshold" editable="true" layoutX="89.0" layoutY="67.0" prefHeight="24.0" prefWidth="97.0" />
+                     </children>
+                  </Pane>
+                  <Pane id="pane" layoutX="11.0" layoutY="21.0" prefHeight="79.0" prefWidth="200.0" styleClass="pane">
+                     <children>
+                        <Spinner fx:id="spinnerImageHeight" editable="true" layoutX="89.0" layoutY="10.0" prefHeight="24.0" prefWidth="97.0" />
+                        <Label layoutX="14.0" layoutY="14.0" text="Image Size" />
+                     </children>
+                  </Pane>
+               </children>
+            </AnchorPane>
       </items>
     </SplitPane>
     <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
       <children>
-        <Label maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Left status" HBox.hgrow="ALWAYS">
+        <Label maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Ready" HBox.hgrow="ALWAYS">
           <font>
             <Font size="11.0" fx:id="x3" />
           </font>
@@ -138,7 +149,7 @@
           </textFill>
         </Label>
         <Pane prefHeight="-1.0" prefWidth="-1.0" HBox.hgrow="ALWAYS" />
-        <Label font="$x3" maxWidth="-1.0" text="Right status" textFill="$x4" HBox.hgrow="NEVER" />
+        <Label font="$x3" maxWidth="-1.0" text="1.0.0" textFill="$x4" HBox.hgrow="NEVER" />
       </children>
       <padding>
         <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />

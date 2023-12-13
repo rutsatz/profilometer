@@ -3,15 +3,11 @@ package com.profilometer.controller;
 import com.profilometer.processor.ImageProcessor;
 import com.profilometer.service.ConfigService;
 import com.profilometer.ui.Window;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SelectionMode;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
@@ -31,12 +27,34 @@ public class MainController {
     public ListView<Path> lvInputImages;
     @FXML
     public Button btnProcess;
-
     @FXML
     public VBox vbImages;
 
+    @FXML
+    public Spinner<Integer> spinnerImageHeight;
+
+    @FXML
+    public CheckBox ckBlurEnabled;
+    @FXML
+    public Spinner<Integer> spinnerBlurKernelSize;
+
+    @FXML
+    public CheckBox ckSegmentationEnabled;
+    @FXML
+    public Spinner<Integer> spinnerSobelKernelSize;
+    @FXML
+    public Spinner<Double> spinnerSegmentationThreshold;
+
     ObservableList<Path> inputImageFiles = FXCollections.observableArrayList();
     ObjectProperty<Path> selectedImageFile = new SimpleObjectProperty<>();
+    IntegerProperty imageHeight = new SimpleIntegerProperty();
+
+    IntegerProperty blurKernelSize = new SimpleIntegerProperty();
+    BooleanProperty blurEnabled = new SimpleBooleanProperty();
+
+    BooleanProperty segmentationEnabled = new SimpleBooleanProperty();
+    IntegerProperty sobelKernelSize = new SimpleIntegerProperty();
+    DoubleProperty segmentationThreshold = new SimpleDoubleProperty();
 
     @FXML
     public void initialize() {
@@ -49,10 +67,26 @@ public class MainController {
 
         btnProcess.disableProperty().bind(lvInputImages.getSelectionModel().selectedItemProperty().isNull());
 
-        initializeEvents();
-    }
+        imageHeight.bind(spinnerImageHeight.valueProperty());
+        spinnerImageHeight.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(50, 4_000, 100, 10));
 
-    private void initializeEvents() {
+        blurEnabled.bind(ckBlurEnabled.selectedProperty());
+        spinnerBlurKernelSize.disableProperty().bind(blurEnabled.not());
+        blurKernelSize.bind(spinnerBlurKernelSize.valueProperty());
+        spinnerBlurKernelSize.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 99, 3, 2));
+
+        segmentationEnabled.bind(ckSegmentationEnabled.selectedProperty());
+        spinnerSobelKernelSize.disableProperty().bind(segmentationEnabled.not());
+        spinnerSegmentationThreshold.disableProperty().bind(segmentationEnabled.not());
+        sobelKernelSize.bind(spinnerSobelKernelSize.valueProperty());
+        segmentationThreshold.bind(spinnerSegmentationThreshold.valueProperty());
+        spinnerSobelKernelSize.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 99, 3, 2));
+        spinnerSegmentationThreshold.setValueFactory(new SpinnerValueFactory
+                .DoubleSpinnerValueFactory(1, 100, 3, 0.1));
+
     }
 
     @FXML
@@ -63,12 +97,17 @@ public class MainController {
     }
 
     @FXML
+    public void menuFileQuit() {
+        System.exit(0);
+    }
+
+    @FXML
     public void btnProcess() {
         Window.clearImages();
 
-//        inputImageFiles.remove(0,3);
         System.out.println(selectedImageFile.get().toString());
-        new ImageProcessor().process(selectedImageFile.get().toString());
+        new ImageProcessor().process(selectedImageFile.get().toString(), imageHeight, blurEnabled.get(), blurKernelSize.get(),
+                segmentationEnabled.get(), sobelKernelSize.get(), segmentationThreshold.get());
 
 
 //        new SmoothingRun().smooth();

@@ -15,7 +15,7 @@ public class ProfilometerApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(ProfilometerApplication.class.getResource("main.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(ProfilometerApplication.class.getResource("/view/main.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 1280, 720);
         stage.setTitle("UNISC Profilometer");
         stage.setScene(scene);

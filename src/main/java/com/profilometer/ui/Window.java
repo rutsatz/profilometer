@@ -1,6 +1,7 @@
 package com.profilometer.ui;
 
 import javafx.application.Platform;
+import javafx.beans.property.IntegerProperty;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -16,12 +17,14 @@ public class Window {
 
     public static VBox vbImages;
 
-    public static void addImage(Mat mat, String name) {
+    public static void addImage(Mat mat, String name, IntegerProperty heightProperty) {
         HighGui.toBufferedImage(mat);
 
         Image image = mat2Image(mat);
 
         ImageView imageView = new ImageView(image);
+        imageView.setPreserveRatio(true);
+        imageView.fitHeightProperty().bind(heightProperty);
 
         updateUi(() -> {
             vbImages.getChildren().add(new Label(name));

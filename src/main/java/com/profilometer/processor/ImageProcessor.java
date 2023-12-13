@@ -1,6 +1,7 @@
 package com.profilometer.processor;
 
 import com.profilometer.ui.Window;
+import javafx.beans.property.IntegerProperty;
 import nu.pattern.OpenCV;
 import org.opencv.core.*;
 import org.opencv.highgui.HighGui;
@@ -23,35 +24,43 @@ public class ImageProcessor {
     String windowName = "Filter Demo 1";
 
 
-    public void process(String imageFile) {
+    public void process(String imageFile, IntegerProperty heightProperty, boolean blur, int blurKernel,
+                        boolean segmentation, int sobelKernel, double segmentationMinThreshold) {
         Mat src = Imgcodecs.imread(imageFile);
         if (src.empty()) {
             System.err.println("Cannot read image: " + imageFile);
             System.exit(0);
         }
-        Window.addImage(src, "Original Image");
+        Window.addImage(src, "Original Image", heightProperty);
 
         // ### Gray ###
         Mat srcGray = new Mat();
         Imgproc.cvtColor(src, srcGray, Imgproc.COLOR_BGR2GRAY);
-        Window.addImage(srcGray, "Gray Image");
+        Window.addImage(srcGray, "Gray Image", heightProperty);
 
         // ### Blur ###
         Mat blurSrc = new Mat();
-        Size kernelSize = new Size(3, 3);
-        Imgproc.blur(srcGray, blurSrc, kernelSize);
-        Window.addImage(blurSrc, "Blur");
+        if (blur) {
+            Size blurKernelSize = new Size(blurKernel, blurKernel);
+            Imgproc.blur(srcGray, blurSrc, blurKernelSize);
+            Window.addImage(blurSrc, "Blur", heightProperty);
+        } else {
+            srcGray.copyTo(blurSrc);
+        }
 
         // ### Segmentation (Canny) ###
         // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
         Mat cannySrc = new Mat();
-        double minThreshold = 3.0;
-        double maxThreshold = minThreshold * 3; // Canny's recommendation
-        int sobelKernelSize = 3;
-        boolean useL2gradient = false;
-        Imgproc.Canny(blurSrc, cannySrc, minThreshold, maxThreshold, sobelKernelSize, useL2gradient);
-        Window.addImage(cannySrc, "Segmentation");
-
+        if (segmentation) {
+            double minThreshold = segmentationMinThreshold;
+            double maxThreshold = minThreshold * 3; // Canny's recommendation
+            int sobelKernelSize = sobelKernel;
+            boolean useL2gradient = false;
+            Imgproc.Canny(blurSrc, cannySrc, minThreshold, maxThreshold, sobelKernelSize, useL2gradient);
+            Window.addImage(cannySrc, "Segmentation", heightProperty);
+        } else {
+            blurSrc.copyTo(cannySrc);
+        }
 
         // ### Contours ###
         // https://opencv-java-tutorials.readthedocs.io/en/latest/08-object-detection.html
@@ -75,7 +84,7 @@ public class ImageProcessor {
             for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
                 Imgproc.drawContours(srcContours, contours, idx, new Scalar(250, 0, 0));
             }
-            Window.addImage(srcContours, "Contours");
+            Window.addImage(srcContours, "Contours", heightProperty);
         }
 
 
