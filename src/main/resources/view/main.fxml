@@ -51,7 +51,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
+<VBox prefHeight="700.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
@@ -71,7 +71,7 @@
     </MenuBar>
     <SplitPane dividerPositions="0.2505567928730512, 0.7505567928730512" focusTraversable="true" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
       <items>
-            <VBox alignment="TOP_RIGHT" spacing="5.0">
+            <VBox alignment="TOP_RIGHT" prefWidth="222.0" spacing="5.0">
                <children>
             <Label alignment="CENTER" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Images" textAlignment="CENTER" wrapText="false">
               <font>
@@ -82,7 +82,14 @@
               </textFill>
             </Label>
                   <ListView fx:id="lvInputImages" />
-                  <Button fx:id="btnProcess" mnemonicParsing="false" onAction="#btnProcess" text="Process &gt;&gt;" />
+                  <Pane id="pane" prefHeight="79.0" prefWidth="200.0" styleClass="pane">
+                     <children>
+                        <Label layoutX="14.0" layoutY="14.0" text="Axles running" />
+                        <Label fx:id="lblAxlesRunning" layoutX="120.0" layoutY="14.0" text="Label" />
+                        <Label layoutX="14.0" layoutY="32.0" text="Lifted axles" />
+                        <Label fx:id="lblLiftedAxles" layoutX="120.0" layoutY="32.0" text="Label" />
+                     </children>
+                  </Pane>
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -100,7 +107,7 @@
                   </VBox>
           </content>
         </ScrollPane>
-            <AnchorPane>
+            <AnchorPane prefWidth="222.0">
                <children>
                   <Label alignment="CENTER" style="&#10;" text="Details" textAlignment="CENTER" wrapText="false">
                      <font>
@@ -134,6 +141,7 @@
                         <Label layoutX="14.0" layoutY="14.0" text="Image Size" />
                      </children>
                   </Pane>
+                  <Button fx:id="btnProcess" layoutX="16.0" layoutY="318.0" mnemonicParsing="false" onAction="#btnProcess" text="&lt;&lt; Update" />
                </children>
             </AnchorPane>
       </items>

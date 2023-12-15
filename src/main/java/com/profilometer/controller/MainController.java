@@ -5,6 +5,7 @@ import com.profilometer.service.ConfigService;
 import com.profilometer.ui.Window;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -31,6 +32,11 @@ public class MainController {
     public VBox vbImages;
 
     @FXML
+    public Label lblAxlesRunning;
+    @FXML
+    public Label lblLiftedAxles;
+
+    @FXML
     public Spinner<Integer> spinnerImageHeight;
 
     @FXML
@@ -47,6 +53,9 @@ public class MainController {
 
     ObservableList<Path> inputImageFiles = FXCollections.observableArrayList();
     ObjectProperty<Path> selectedImageFile = new SimpleObjectProperty<>();
+    StringProperty axlesRunning = new SimpleStringProperty();
+    StringProperty liftedAxles = new SimpleStringProperty();
+
     IntegerProperty imageHeight = new SimpleIntegerProperty();
 
     IntegerProperty blurKernelSize = new SimpleIntegerProperty();
@@ -60,13 +69,19 @@ public class MainController {
     public void initialize() {
         Window.vbImages = vbImages;
 
+        // menu da esquerda
         lvInputImages.setCellFactory(listView -> renderCellWithImage());
         lvInputImages.setItems(inputImageFiles);
         lvInputImages.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        lvInputImages.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> process());
         selectedImageFile.bind(lvInputImages.getSelectionModel().selectedItemProperty());
+
+        lblAxlesRunning.textProperty().bind(axlesRunning);
+        lblLiftedAxles.textProperty().bind(liftedAxles);
 
         btnProcess.disableProperty().bind(lvInputImages.getSelectionModel().selectedItemProperty().isNull());
 
+        // menu da direita
         imageHeight.bind(spinnerImageHeight.valueProperty());
         spinnerImageHeight.setValueFactory(new SpinnerValueFactory
                 .IntegerSpinnerValueFactory(50, 8_000, 500, 50));
@@ -86,7 +101,6 @@ public class MainController {
                 .IntegerSpinnerValueFactory(3, 7, 3, 2));
         spinnerSegmentationThreshold.setValueFactory(new SpinnerValueFactory
                 .DoubleSpinnerValueFactory(1, 100, 4, 0.1));
-
     }
 
     @FXML
@@ -94,6 +108,8 @@ public class MainController {
         ConfigService.chooseInputFolder();
         List<Path> images = readImages(ConfigService.config.getInputFolder());
         inputImageFiles.setAll(images);
+        // trigger render first item
+        lvInputImages.getSelectionModel().selectFirst();
     }
 
     @FXML
@@ -103,15 +119,22 @@ public class MainController {
 
     @FXML
     public void btnProcess() {
+        process();
+    }
+
+    private void process() {
         Window.clearImages();
 
+        if (selectedImageFile.isNull().get()) {
+            return;
+        }
+
         System.out.println(selectedImageFile.get().toString());
-        new ImageProcessor().process(selectedImageFile.get().toString(), imageHeight, blurEnabled.get(), blurKernelSize.get(),
+        new ImageProcessor().process(selectedImageFile.get().toString(), imageHeight, axlesRunning, liftedAxles,
+                blurEnabled.get(), blurKernelSize.get(),
                 segmentationEnabled.get(), sobelKernelSize.get(), segmentationThreshold.get());
-
-
-//        new SmoothingRun().smooth();
     }
+
 
     private ListCell<Path> renderCellWithImage() {
         return new ListCell<>() {

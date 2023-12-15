@@ -1,7 +1,9 @@
 package com.profilometer.processor;
 
 import com.profilometer.ui.Window;
+import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.StringProperty;
 import nu.pattern.OpenCV;
 import org.opencv.core.*;
 import org.opencv.highgui.HighGui;
@@ -13,17 +15,17 @@ import java.util.List;
 
 public class ImageProcessor {
 
+    private static final int MAX_BINARY_VALUE = 255;
+
     static {
         OpenCV.loadLocally();
     }
 
     int DELAY_CAPTION = 1500;
-    private static int MAX_BINARY_VALUE = 255;
-
     String windowName = "Filter Demo 1";
 
 
-    public void process(String imageFile, IntegerProperty heightProperty, boolean blur, int blurKernel,
+    public void process(String imageFile, IntegerProperty heightProperty, StringProperty axlesRunning, StringProperty liftedAxles, boolean blur, int blurKernel,
                         boolean segmentation, int sobelKernel, double segmentationMinThreshold) {
 
         // ### Original Image ###
@@ -149,7 +151,6 @@ public class ImageProcessor {
 //            Window.addImage(whiteRemovedImage, "White Removed", heightProperty);
 
 
-
 //            Mat dest = new Mat();
 //            // Novo blur pra suavizar as bordas dos brancos trocados
 //            Size blurKernelSize = new Size(blurKernel, blurKernel);
@@ -175,31 +176,95 @@ public class ImageProcessor {
             Mat gapClosedImage = new Mat();
             Size gapKernel = new Size(5, 5);
             Mat morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, gapKernel);
-            Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1,-1), 2, Core.BORDER_REFLECT101);
+            Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
             Window.addImage(gapClosedImage, "Gap Close", heightProperty);
 
 
-
-//            // Count Axles
-//            int axleSizeThreshold = 20;
-//            int axleWhiteColorThreshold = 150;
-//            boolean
-//            for (int i = 0; i < gapClosedImage.cols() ; i++) { // percorre todas as colunas
-////                for (int j = gapClosedImage.rows(); j > 0; j--) { // percorre todas as linhas de baixo para cima
-//                    double[] pixel = gapClosedImage.get(0, i); // Gray
-//
-//                    // Se a escala de cinza for menor que threshold, indica inicio do objeto
-//                    if (pixel[0] < axleWhiteColorThreshold) {
-//                        vehicleFloor[i] = j;
-//                        break;
-//                    }
-////                }
-//            }
-
-
-
-
             // ### Contours ###
+            Mat contoursImage = new Mat(gapClosedImage.size(), 0);
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat hierarchy = new Mat();
+
+            Core.add(contoursImage, Scalar.all(0), contoursImage);
+
+            Imgproc.findContours(gapClosedImage, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+            // if any contour exist...
+            if (hierarchy.size().height > 0 && hierarchy.size().width > 0) {
+                // for each contour, display it in blue
+                for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
+                    Imgproc.drawContours(contoursImage, contours, idx, new Scalar(250, 0, 0), Imgproc.FILLED);
+                }
+                Window.addImage(contoursImage, "Contours", heightProperty);
+            }
+
+
+            // fill contours
+//            Size kernelSize = new Size(15, 5);
+            Size kernelSize = new Size(15, 5);
+            Mat morphKernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, kernelSize);
+//            Mat morphKernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_CROSS, kernelSize);
+
+            Mat filledImage = new Mat(segmentedImage.size(), 0);
+            Core.add(filledImage, Scalar.all(0), filledImage);
+
+//            Imgproc.morphologyEx(segmentedImage, filledImage, Imgproc.MORPH_OPEN, morphKernel2, new Point(-1,-1), 2);
+            Imgproc.morphologyEx(contoursImage, filledImage, Imgproc.MORPH_OPEN, morphKernel2, new Point(-1, -1), 2);
+            Window.addImage(filledImage, "Fill Contours", heightProperty);
+
+
+            // Count Axles
+            Mat countAxlesImageSrc = new Mat();
+            // src image
+            filledImage.copyTo(countAxlesImageSrc);
+
+            int axleMinSizeThreshold = 15;
+            int axleWhiteColorThreshold = 150;
+            boolean insideObject = false;
+            int objectStart = 0;
+            int objectEnd = 0;
+            int lastObjectEnd = 0;
+            int totalAxlesCount = 0;
+            int analizeHeight = 1;
+
+            // Handle cases where resolution is too low
+            int columnHeight = countAxlesImageSrc.height() - analizeHeight;
+            if (columnHeight <= 0) {
+                columnHeight = countAxlesImageSrc.height();
+            }
+            for (int x = 0; x < countAxlesImageSrc.width(); x++) { // percorre todas as colunas
+//                System.out.println("width " + countAxlesImageSrc.width() + " height " + countAxlesImageSrc.height() );
+                double[] pixel = countAxlesImageSrc.get(countAxlesImageSrc.height() - columnHeight, x); // Gray
+                System.out.print("(" + (countAxlesImageSrc.height() - columnHeight) + "," + x + ") \t");
+                System.out.println("x \t" + x + "\t " + pixel[0] + "\t " + insideObject + "\t " + objectStart + "\t " + objectEnd + "\t " + lastObjectEnd);
+                // Se a escala de cinza for menor que threshold, indica inicio do objeto
+                if (!insideObject && pixel[0] > axleWhiteColorThreshold) {
+                    objectStart = x;
+                    insideObject = true;
+                }
+                if (insideObject && pixel[0] < axleWhiteColorThreshold) {
+                    insideObject = false;
+                    objectEnd = x;
+                    int objectLenght = objectEnd - objectStart;
+                    System.out.println("objectLenght " + objectLenght);
+                    if (objectLenght >= axleMinSizeThreshold) {
+                        totalAxlesCount++;
+                    }
+                    lastObjectEnd = objectEnd;
+                }
+            }
+            System.out.println("totalAxlesCount " + totalAxlesCount);
+
+            int liftedAxlesCount = 0;
+            int runningAxlesCount = totalAxlesCount - liftedAxlesCount;
+
+            // update UI
+            Platform.runLater(() -> {
+                axlesRunning.setValue(String.valueOf(runningAxlesCount));
+                liftedAxles.setValue(String.valueOf(liftedAxlesCount));
+            });
+
+
             // https://opencv-java-tutorials.readthedocs.io/en/latest/08-object-detection.html
 //            Mat contoursImage = new Mat(gapClosedImage.size(), 0);
 //            Core.add(contoursImage, Scalar.all(0), contoursImage);
