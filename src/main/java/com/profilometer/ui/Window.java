@@ -3,6 +3,7 @@ package com.profilometer.ui;
 import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -22,13 +23,15 @@ public class Window {
 
         Image image = mat2Image(mat);
 
+        Label title = new Label(name);
+        VBox.setMargin(title, new Insets(20, 5, 0, 5));
+
         ImageView imageView = new ImageView(image);
         imageView.setPreserveRatio(true);
-//        imageView.fitHeightProperty().bind(heightProperty);
         imageView.fitWidthProperty().bind(heightProperty);
 
         updateUi(() -> {
-            vbImages.getChildren().add(new Label(name));
+            vbImages.getChildren().add(title);
             vbImages.getChildren().add(imageView);
         });
     }

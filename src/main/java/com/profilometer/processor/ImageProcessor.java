@@ -18,8 +18,7 @@ public class ImageProcessor {
     }
 
     int DELAY_CAPTION = 1500;
-    int DELAY_BLUR = 100;
-    int MAX_KERNEL_LENGTH = 31;
+    private static int MAX_BINARY_VALUE = 255;
 
     String windowName = "Filter Demo 1";
 
@@ -110,6 +109,8 @@ public class ImageProcessor {
             // Calcula a média simples de todos os pontos, para identificar onde cortar a imagem.
             // Daria para tentar fazer alguma espécia de normalização para melhorar a detecção de motos.
             int vehicleFloorCutPoint = (int) vehicleFloorMean / vehicleFloor.length;
+            // Como a média geralmente pega um pouco do chassi, move o ponto de corte um pouco para baixo, para pegar somente as rodas
+            vehicleFloorCutPoint = (int) (vehicleFloorCutPoint * 1.10);
 
             // Draw vehicle floor cut line
             Imgproc.line(vehicleFloorEdgesImage, new Point(0, vehicleFloorCutPoint), new Point(vehicleFloor.length, vehicleFloorCutPoint), new Scalar(255), 1);
@@ -119,7 +120,7 @@ public class ImageProcessor {
             // ### Crop Vehicle Axles ROI ###
             Rect vehicleRect = new Rect(0, 0, vehicleFloorEdgesImage.cols(), vehicleFloorCutPoint); // recorta o chão
             Mat imageVehicleNoAxles = new Mat(blurSrc, vehicleRect);
-            Window.addImage(imageVehicleNoAxles, "imageROI", heightProperty);
+            Window.addImage(imageVehicleNoAxles, "Croped Vehicle", heightProperty);
 
             // Get the ROI with the axles
             Rect vehicleAxlesROIRect = new Rect(0, vehicleRect.height, blurSrc.cols(), blurSrc.rows() - vehicleRect.height); // remover o chão
@@ -128,7 +129,32 @@ public class ImageProcessor {
 
 
             // TODO Transformar as cores brancas em preto.
+//            Mat whiteRemovedImage = new Mat();
+//            vehicleAxlesImage.copyTo(whiteRemovedImage);
+//            int upperWhiteThreshold = 150;
+//            double upperBlackTarget = 0;
+//            int mediumWhiteThreshold = 150;
+//            double mediumBlackTarget = 50;
+//            for (int i = 0; i < whiteRemovedImage.cols(); i++) { // width
+//                for (int j = 0; j < whiteRemovedImage.rows(); j++) { // height
+//                    double[] pixel = whiteRemovedImage.get(j, i);
+//                    if (pixel[0] > upperWhiteThreshold) { // Set super white to super black
+//                        whiteRemovedImage.at(Double.class, j, i).setV(upperBlackTarget*0.75);
+//                    }
+////                    else if (pixel[0] > mediumWhiteThreshold) { // Reduce the whiteness of adjacent pixels
+////                        whiteRemovedImage.at(Double.class, j, i).setV(mediumBlackTarget);
+////                    }
+//                }
+//            }
+//            Window.addImage(whiteRemovedImage, "White Removed", heightProperty);
 
+
+
+//            Mat dest = new Mat();
+//            // Novo blur pra suavizar as bordas dos brancos trocados
+//            Size blurKernelSize = new Size(blurKernel, blurKernel);
+//            Imgproc.blur(whiteRemovedImage, dest, blurKernelSize);
+//            Window.addImage(dest, "Blur White Removed", heightProperty);
 
             // ### Segmentation (Canny) ###
             // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
@@ -145,30 +171,58 @@ public class ImageProcessor {
             }
 
 
+            // Gap Close
+            Mat gapClosedImage = new Mat();
+            Size gapKernel = new Size(5, 5);
+            Mat morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, gapKernel);
+            Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1,-1), 2, Core.BORDER_REFLECT101);
+            Window.addImage(gapClosedImage, "Gap Close", heightProperty);
+
+
+
+//            // Count Axles
+//            int axleSizeThreshold = 20;
+//            int axleWhiteColorThreshold = 150;
+//            boolean
+//            for (int i = 0; i < gapClosedImage.cols() ; i++) { // percorre todas as colunas
+////                for (int j = gapClosedImage.rows(); j > 0; j--) { // percorre todas as linhas de baixo para cima
+//                    double[] pixel = gapClosedImage.get(0, i); // Gray
+//
+//                    // Se a escala de cinza for menor que threshold, indica inicio do objeto
+//                    if (pixel[0] < axleWhiteColorThreshold) {
+//                        vehicleFloor[i] = j;
+//                        break;
+//                    }
+////                }
+//            }
+
+
+
+
             // ### Contours ###
             // https://opencv-java-tutorials.readthedocs.io/en/latest/08-object-detection.html
-            Mat srcContours = new Mat(src.size(), 0);
-            Core.add(srcContours, Scalar.all(0), srcContours);
-
-            // init
-            List<MatOfPoint> contours = new ArrayList<>();
-            Mat hierarchy = new Mat();
-
-            // find contours
-            Imgproc.findContours(segmentedImage, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
-
-            for (MatOfPoint point : contours) {
-//            System.out.println(point);
-            }
-
-            // if any contour exist...
-            if (hierarchy.size().height > 0 && hierarchy.size().width > 0) {
-                // for each contour, display it in blue
-                for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
-                    Imgproc.drawContours(srcContours, contours, idx, new Scalar(250, 0, 0));
-                }
-                Window.addImage(srcContours, "Contours", heightProperty);
-            }
+//            Mat contoursImage = new Mat(gapClosedImage.size(), 0);
+//            Core.add(contoursImage, Scalar.all(0), contoursImage);
+//
+//            // init
+//            List<MatOfPoint> contours = new ArrayList<>();
+//            Mat hierarchy = new Mat();
+//
+//            // find contours
+//            Imgproc.findContours(gapClosedImage, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+//
+//            for (MatOfPoint point : contours) {
+//                System.out.println(point);
+//            }
+//
+//            // if any contour exist...
+//            if (hierarchy.size().height > 0 && hierarchy.size().width > 0) {
+//                // for each contour, display it in blue
+//                for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
+//                    Imgproc.drawContours(contoursImage, contours, idx, new Scalar(250, 0, 0));
+//                }
+//                Window.addImage(contoursImage, "Contours", heightProperty);
+//            }
 
         } catch (Exception e) {
             e.printStackTrace();

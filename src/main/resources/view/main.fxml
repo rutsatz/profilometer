@@ -51,7 +51,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
+<VBox prefHeight="600.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
@@ -71,7 +71,7 @@
     </MenuBar>
     <SplitPane dividerPositions="0.2505567928730512, 0.7505567928730512" focusTraversable="true" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
       <items>
-            <VBox spacing="5.0">
+            <VBox alignment="TOP_RIGHT" spacing="5.0">
                <children>
             <Label alignment="CENTER" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Images" textAlignment="CENTER" wrapText="false">
               <font>
@@ -82,7 +82,7 @@
               </textFill>
             </Label>
                   <ListView fx:id="lvInputImages" />
-                  <Button fx:id="btnProcess" mnemonicParsing="false" onAction="#btnProcess" text="Process" />
+                  <Button fx:id="btnProcess" mnemonicParsing="false" onAction="#btnProcess" text="Process &gt;&gt;" />
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />

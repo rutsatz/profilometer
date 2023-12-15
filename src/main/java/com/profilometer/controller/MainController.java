@@ -83,9 +83,9 @@ public class MainController {
         sobelKernelSize.bind(spinnerSobelKernelSize.valueProperty());
         segmentationThreshold.bind(spinnerSegmentationThreshold.valueProperty());
         spinnerSobelKernelSize.setValueFactory(new SpinnerValueFactory
-                .IntegerSpinnerValueFactory(3, 99, 3, 2));
+                .IntegerSpinnerValueFactory(3, 7, 3, 2));
         spinnerSegmentationThreshold.setValueFactory(new SpinnerValueFactory
-                .DoubleSpinnerValueFactory(1, 100, 3, 0.1));
+                .DoubleSpinnerValueFactory(1, 100, 4, 0.1));
 
     }
 
