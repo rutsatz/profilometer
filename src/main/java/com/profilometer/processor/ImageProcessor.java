@@ -11,6 +11,7 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ImageProcessor {
@@ -57,12 +58,12 @@ public class ImageProcessor {
 
             Rect groundRect = new Rect(0, groundEnd, src.cols(), src.rows() - groundEnd); // recorta o chão
             Mat groundImage = new Mat(src, groundRect);
-            Window.addImage(groundImage, "Ground Removed", heightProperty);
+//            Window.addImage(groundImage, "Ground Removed", heightProperty); // TODO uncomment
 
             // Remover o chão da imagem original
             Rect rectNoGround = new Rect(0, 0, src.cols(), src.rows() - groundRect.height); // remover o chão
             Mat imageNoGround = new Mat(src, rectNoGround);
-            Window.addImage(imageNoGround, "Image No Ground", heightProperty);
+//            Window.addImage(imageNoGround, "Image No Ground", heightProperty); // TODO uncomment
 
 
             // ### Gray ###
@@ -105,7 +106,7 @@ public class ImageProcessor {
             // Draw vehicle floor
             for (int x = 0; x < vehicleFloor.length; x++) {
                 vehicleFloorMean += vehicleFloor[x];
-                Imgproc.line(vehicleFloorEdgesImage, new Point(x, vehicleFloor[x]), new Point(x, vehicleFloor[x]), new Scalar(255), 1);
+                Imgproc.line(vehicleFloorEdgesImage, new Point(x, vehicleFloor[x]), new Point(x, vehicleFloor[x]), new Scalar(250), 1);
             }
 
             // Calcula a média simples de todos os pontos, para identificar onde cortar a imagem.
@@ -115,7 +116,7 @@ public class ImageProcessor {
             vehicleFloorCutPoint = (int) (vehicleFloorCutPoint * 1.10);
 
             // Draw vehicle floor cut line
-            Imgproc.line(vehicleFloorEdgesImage, new Point(0, vehicleFloorCutPoint), new Point(vehicleFloor.length, vehicleFloorCutPoint), new Scalar(255), 1);
+            Imgproc.line(vehicleFloorEdgesImage, new Point(0, vehicleFloorCutPoint), new Point(vehicleFloor.length, vehicleFloorCutPoint), new Scalar(250), 1);
             Window.addImage(vehicleFloorEdgesImage, "Vehicle Floor Edges", heightProperty);
 
 
@@ -124,8 +125,10 @@ public class ImageProcessor {
             Mat imageVehicleNoAxles = new Mat(blurSrc, vehicleRect);
             Window.addImage(imageVehicleNoAxles, "Croped Vehicle", heightProperty);
 
+
             // Get the ROI with the axles
             Rect vehicleAxlesROIRect = new Rect(0, vehicleRect.height, blurSrc.cols(), blurSrc.rows() - vehicleRect.height); // remover o chão
+            System.out.println("ROI height: " + vehicleAxlesROIRect.height);
             Mat vehicleAxlesImage = new Mat(blurSrc, vehicleAxlesROIRect);
             Window.addImage(vehicleAxlesImage, "Vehicle Axles ROI", heightProperty);
 
@@ -151,11 +154,13 @@ public class ImageProcessor {
 //            Window.addImage(whiteRemovedImage, "White Removed", heightProperty);
 
 
-//            Mat dest = new Mat();
-//            // Novo blur pra suavizar as bordas dos brancos trocados
-//            Size blurKernelSize = new Size(blurKernel, blurKernel);
-//            Imgproc.blur(whiteRemovedImage, dest, blurKernelSize);
-//            Window.addImage(dest, "Blur White Removed", heightProperty);
+            Mat vehicleAxlesImageNewBlur = new Mat();
+            // Novo blur pra suavizar as bordas dos brancos trocados
+            Size blurKernelSize = new Size(blurKernel, blurKernel);
+            Imgproc.blur(vehicleAxlesImage, vehicleAxlesImageNewBlur, blurKernelSize);
+            Window.addImage(vehicleAxlesImageNewBlur, "Blur ROI", heightProperty);
+
+
 
             // ### Segmentation (Canny) ###
             // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
@@ -165,36 +170,242 @@ public class ImageProcessor {
                 double maxThreshold = minThreshold * 3; // Canny's recommendation
                 int sobelKernelSize = sobelKernel;
                 boolean useL2gradient = false;
-                Imgproc.Canny(vehicleAxlesImage, segmentedImage, minThreshold, maxThreshold, sobelKernelSize, useL2gradient);
+                Imgproc.Canny(vehicleAxlesImageNewBlur, segmentedImage, minThreshold, maxThreshold, sobelKernelSize, useL2gradient);
                 Window.addImage(segmentedImage, "Segmentation", heightProperty);
             } else {
                 imageVehicleNoAxles.copyTo(segmentedImage);
             }
 
 
-            // Gap Close
+
+            // ### Dilated Image ### // Reforcar as bordas
+//            Mat dilatedImage = new Mat();
+//            Size dilatedKernelSize = new Size(3, 3);
+//            Mat dilatedKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, dilatedKernelSize);
+//            Imgproc.morphologyEx(segmentedImage, dilatedImage, Imgproc.MORPH_ERODE, dilatedKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
+//            Window.addImage(dilatedImage, "Dilated Image", heightProperty);
+
+
+
+//            // ### Remove External Lines ###
+//            Mat removedExternalLinesImage = new Mat();
+//            Size extKernelSize = new Size(15, 15);
+//            Mat extKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, extKernelSize);
+//            Imgproc.morphologyEx(segmentedImage, removedExternalLinesImage, Imgproc.MORPH_OPEN, extKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
+//            Window.addImage(removedExternalLinesImage, "Remove External Lines", heightProperty);
+
+
+            int aspectRatio = segmentedImage.width() / segmentedImage.height();
+            System.out.println("aspectRatio " + aspectRatio);
+
             Mat gapClosedImage = new Mat();
-            Size gapKernel = new Size(5, 5);
-            Mat morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, gapKernel);
-            Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
-            Window.addImage(gapClosedImage, "Gap Close", heightProperty);
+
+            // Se for uma imagem muito desproporcional (muito mais larga do que alta), um kernel menor funciona melhor
+            if (aspectRatio >= 200) {
+                Mat smallGapClosedImage = new Mat();
+                Size smallGapKernel = new Size(3, 3);
+                Mat smallMorphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, smallGapKernel);
+                Imgproc.morphologyEx(segmentedImage, smallGapClosedImage, Imgproc.MORPH_CLOSE, smallMorphKernel, new Point(-1, -1), 1, Core.BORDER_REFLECT101);
+                Window.addImage(smallGapClosedImage, "Gap Close (Small Kernel)", heightProperty);
+                smallGapClosedImage.copyTo(gapClosedImage);
+            } else {
+                // ### Gap Close ###
+                Size gapKernel = new Size(5, 5);
+                Mat morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, gapKernel);
+                Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
+                Window.addImage(gapClosedImage, "Gap Close (Big Kernel)", heightProperty);
+            }
+
+
 
 
             // ### Contours ###
-            Mat contoursImage = new Mat(gapClosedImage.size(), 0);
+            Mat contoursImage = new Mat(gapClosedImage.size(), CvType.CV_8UC1, Scalar.all(0));
+
+//            contoursImage.setTo(Scalar.all(128)); // preenche de preto
+
             List<MatOfPoint> contours = new ArrayList<>();
             Mat hierarchy = new Mat();
 
-            Core.add(contoursImage, Scalar.all(0), contoursImage);
+//            Core.add(gapClosedImage, Scalar.all(0), contoursImage);
 
-            Imgproc.findContours(gapClosedImage, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+
+            // Draw blank line in the top to make fill countours work
+            int translateXPixels  = 1 ;
+            Mat imageGapClosedPlusTopBlankLine = new Mat(new Size(gapClosedImage.size().width, gapClosedImage.size().height + translateXPixels), CvType.CV_8UC1, Scalar.all(0)); // Clona a imagem, porém adiciona uma linha a mais para add a linha branca no topo
+//            gapClosedImage.copyTo(imageGapClosedPlusTopBlankLine);
+            Mat translate1down = new Mat(2, 3, CvType.CV_32F);
+            translate1down.put(0, 0, 1);
+            translate1down.put(0, 1, 0);
+            translate1down.put(0, 2, 0);
+            translate1down.put(1, 0, 0);
+            translate1down.put(1, 1, 1);
+            translate1down.put(1, 2, translateXPixels); // Move 1 pixel para baixo
+
+
+            // shift image 1 pixel down
+            Imgproc.warpAffine(gapClosedImage, imageGapClosedPlusTopBlankLine, translate1down, new Size(imageGapClosedPlusTopBlankLine.width(), imageGapClosedPlusTopBlankLine.height()));
+            Imgproc.line(imageGapClosedPlusTopBlankLine, new Point(0,0), new Point(imageGapClosedPlusTopBlankLine.width(), 0), Scalar.all(250), 1);
+//            Imgproc.line(imageGapClosedPlusTopBlankLine, new Point(0,6), new Point(imageGapClosedPlusTopBlankLine.width(), 6), Scalar.all(250), 1);
+            // Draw only where we have contours, to avoid combining unrelated objects. Actually, add the additional points.
+
+//            for (int x = 0; x < imageGapClosedPlusTopBlankLine.width(); x++) {
+//                double[] pixel = imageGapClosedPlusTopBlankLine.get(7,x);
+//                if (pixel[0] > 128) {
+//                    Imgproc.line(imageGapClosedPlusTopBlankLine, new Point(x, 7), new Point(x, 0), Scalar.all(250), 1);
+//                }
+//            }
+
+            Window.addImage(imageGapClosedPlusTopBlankLine, "Gap Closed + Top Blank Line", heightProperty);
+
+
+
+
+//            Mat newGapClosedImage = new Mat();
+//            Size newGapKernel = new Size(3, 3);
+//            Mat newMorphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, newGapKernel);
+//            Imgproc.morphologyEx(imageGapClosedPlusTopBlankLine, newGapClosedImage, Imgproc.MORPH_CLOSE, newMorphKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
+//            Window.addImage(newGapClosedImage, "New Gap Close", heightProperty);
+
+
+
+
+
+//            Imgproc.findContours(gapClosedImage, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            Imgproc.findContours(imageGapClosedPlusTopBlankLine, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+
+
+
+            // Test
+            Mat contoursTestPointsImage = new Mat(imageGapClosedPlusTopBlankLine.size() ,CvType.CV_8UC1, Scalar.all(0)); // plot all contours points
+            Mat minsMaxsTestPointsImage = new Mat(imageGapClosedPlusTopBlankLine.size() ,CvType.CV_8UC1, Scalar.all(0)); // plot only mins and maxs contours
+//            Imgproc.(contoursTestPointsImage, Scalar.all(0), contoursTestPointsImage); // black fill
+
+
+
+
+//
+            for (int count = 0; count < contours.size(); count++) {
+//                System.out.println("contour " + count);
+//                if (count != 3) continue; // TODO: remove
+
+                MatOfPoint contour = contours.get(count);
+//                Point[] points = contour.toArray();
+//                Point minX1 = new Point(Double.MAX_VALUE,0);
+//                int minXListPos = 0; // Posićão que o ponto deve ser inserido na lista
+//                Point maxX1 = new Point(0,0);
+//                int maxXListPos = 0;
+//                for (int x = 0; x < points.length; x++) {
+//                    Point point = points[x];
+//                    if (point.x < minX1.x) {
+//                        minX1 = new Point(point.x, 0);
+//                        minXListPos = x;
+//                    }
+//                    if (point.x > maxX1.x) {
+//                        maxX1 = new Point(point.x, 0);
+//                        maxXListPos = x;
+//                    }
+//                }
+//
+//
+//                System.out.println("contour " + count + " area " + Imgproc.contourArea(contour));
+//
+//                // Create a new MatOfPoint contour with the new top line
+//                System.out.println( "points.length " + points.length + " minX1 " + minX1 + " maxX1 " + maxX1 + ". minXListPos " + minXListPos + " maxXListPos " + maxXListPos);
+//
+//                List<Point> newPoints = new ArrayList<>(Arrays.asList(contour.toArray()));
+//
+//                newPoints.add(points.length, maxX1); // Adiciona o último primeiro
+//                newPoints.add(0, minX1); // Adiciona o último primeiro
+//
+//                System.out.println("new contour " + count + " new area " + Imgproc.contourArea(contour));
+
+
+
+//                System.out.println("--------------> contourArea: " + Imgproc.contourArea(contour));
+
+
+//                System.out.print("type "  + point.type() + " width " + point.width() + " height " + point.height());
+//                System.out.println();
+//                System.out.print(" arr " + Arrays.toString(point.toArray()));
+//                System.out.println();
+//                for (Point p : point.toList()) {
+//                }
+//                System.out.print("contour cols: " + contour.cols() + " rows: " + contour.rows() + " points: ");
+
+
+                double[] minX = {0,0};
+                double[] maxX = {0,0};
+                double[] minY = {0,0};
+                double[] maxY = {0,0};
+
+
+                // extract mins and max
+                for(int i = 0; i < contour.size().width; i++){
+                    for (int j=0; j < contour.size().height; j++) {
+                        double[] point = contour.get(j, i);
+//                        System.out.print("(" + (int) point[0] + ", " + (int) point[1] + ") ");
+
+                        // Testar imprimir os pontos
+                        Imgproc.line(contoursTestPointsImage, new Point(point[0], point[1]), new Point(point[0], point[1]), Scalar.all(250), 1);
+
+                        if (point[0] < minX[0]) {
+                            minX = point;
+                        }
+                        if (point[0] > maxX[0]) {
+                            maxX = point;
+                        }
+                        if (point[1] < minY[1]) {
+                            minY = point;
+                        }
+                        if (point[1] > maxY[1]) {
+                            maxY = point;
+                        }
+                    }
+                }
+
+//                if ()
+
+                Imgproc.line(minsMaxsTestPointsImage, new Point(minX), new Point(minX), Scalar.all(250), 3);
+                Imgproc.line(minsMaxsTestPointsImage, new Point(maxX), new Point(maxX), Scalar.all(250), 3);
+                Imgproc.line(minsMaxsTestPointsImage, new Point(minY), new Point(minY), Scalar.all(250), 3);
+                Imgproc.line(minsMaxsTestPointsImage, new Point(maxY), new Point(maxY), Scalar.all(250), 3);
+
+
+                System.out.println();
+            }
+
+            Window.addImage(contoursTestPointsImage, "Test Countourns Points", heightProperty);
+
+
+
+//            Window.addImage(minsMaxsTestPointsImage, "minsMaxsTestPointsImage Test Countourns Points", heightProperty);
+
+
+            // Depois de pegar os pontos, posso contar quantos tocam o chão. Se for maior que o threshold, baaaam!!!
+            // Se tiver pontos dentro de um threshold, ou seja, é um pneu, mas não toca o solo, baammmm, eixo levantado!!!!!!
+
+
 
             // if any contour exist...
             if (hierarchy.size().height > 0 && hierarchy.size().width > 0) {
                 // for each contour, display it in blue
-                for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
-                    Imgproc.drawContours(contoursImage, contours, idx, new Scalar(250, 0, 0), Imgproc.FILLED);
+//                for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
+//                    Imgproc.drawContours(contoursImage, contours, idx, new Scalar(250, 0, 0), Imgproc.FILLED);
+//                }
+
+//                Imgproc.drawContours(contoursImage, contours, -1, new Scalar(250, 0, 0), Imgproc.FILLED);
+//                Imgproc.drawContours(contoursImage, contours, -1, new Scalar(250, 0, 0), Core.FILLED);
+
+                for (int i = 0; i < contours.size(); i++) {
+                    MatOfPoint contour = contours.get(i);
+                    Scalar color = new Scalar(255, 0, 0); // White color (you can choose your own color)
+
+                    // Draw and fill the contour on the blank image
+                    Imgproc.drawContours(contoursImage, contours, i, color, Core.FILLED, Imgproc.LINE_8, hierarchy, 50, new Point());
                 }
+
                 Window.addImage(contoursImage, "Contours", heightProperty);
             }
 
@@ -205,18 +416,48 @@ public class ImageProcessor {
             Mat morphKernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, kernelSize);
 //            Mat morphKernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_CROSS, kernelSize);
 
-            Mat filledImage = new Mat(segmentedImage.size(), 0);
-            Core.add(filledImage, Scalar.all(0), filledImage);
+            Mat filledImage = new Mat(segmentedImage.size(), CvType.CV_8UC1, Scalar.all(0));
+//            Core.add(filledImage, Scalar.all(0), filledImage);
 
 //            Imgproc.morphologyEx(segmentedImage, filledImage, Imgproc.MORPH_OPEN, morphKernel2, new Point(-1,-1), 2);
             Imgproc.morphologyEx(contoursImage, filledImage, Imgproc.MORPH_OPEN, morphKernel2, new Point(-1, -1), 2);
-            Window.addImage(filledImage, "Fill Contours", heightProperty);
+            Window.addImage(filledImage, "Filled Contours", heightProperty);
 
 
-            // Count Axles
+
+
+
+            // ### New Contours ###
+            Mat newContoursImage = new Mat(filledImage.size(), CvType.CV_8UC1, Scalar.all(0));
+
+//            contoursImage.setTo(Scalar.all(128)); // preenche de preto
+
+            List<MatOfPoint> newContours = new ArrayList<>();
+            Mat newHierarchy = new Mat();
+            Imgproc.findContours(filledImage, newContours, newHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+
+            for (int i = 0; i < newContours.size(); i++) {
+                MatOfPoint contour = newContours.get(i);
+                Scalar color = new Scalar(255, 0, 0); // White color (you can choose your own color)
+
+//                System.out.println("new contour " + i);
+//                System.out.println("--------------> new contourArea: " + Imgproc.contourArea(contour)); //TODO uncomment
+
+                // Draw and fill the contour on the blank image
+//                Imgproc.drawContours(newContoursImage, newContours, i, color, Core.FILLED, Imgproc.LINE_8, hierarchy, 0, new Point());
+            }
+            Imgproc.drawContours(newContoursImage, newContours, -1, Scalar.all(250), Core.FILLED, Imgproc.LINE_8, newHierarchy, 50, new Point());
+
+            Window.addImage(newContoursImage, "New Contours", heightProperty);
+
+
+
+
+
+            // ### Count Axles ###
             Mat countAxlesImageSrc = new Mat();
             // src image
-            filledImage.copyTo(countAxlesImageSrc);
+            newContoursImage.copyTo(countAxlesImageSrc);
 
             int axleMinSizeThreshold = 15;
             int axleWhiteColorThreshold = 150;
@@ -225,18 +466,18 @@ public class ImageProcessor {
             int objectEnd = 0;
             int lastObjectEnd = 0;
             int totalAxlesCount = 0;
-            int analizeHeight = 1;
+            int analyzeHeight = 1;
 
             // Handle cases where resolution is too low
-            int columnHeight = countAxlesImageSrc.height() - analizeHeight;
+            int columnHeight = countAxlesImageSrc.height() - analyzeHeight;
             if (columnHeight <= 0) {
                 columnHeight = countAxlesImageSrc.height();
             }
             for (int x = 0; x < countAxlesImageSrc.width(); x++) { // percorre todas as colunas
 //                System.out.println("width " + countAxlesImageSrc.width() + " height " + countAxlesImageSrc.height() );
                 double[] pixel = countAxlesImageSrc.get(countAxlesImageSrc.height() - columnHeight, x); // Gray
-                System.out.print("(" + (countAxlesImageSrc.height() - columnHeight) + "," + x + ") \t");
-                System.out.println("x \t" + x + "\t " + pixel[0] + "\t " + insideObject + "\t " + objectStart + "\t " + objectEnd + "\t " + lastObjectEnd);
+//                System.out.print("(" + (countAxlesImageSrc.height() - columnHeight) + "," + x + ") \t");
+//                System.out.println("x \t" + x + "\t " + pixel[0] + "\t " + insideObject + "\t " + objectStart + "\t " + objectEnd + "\t " + lastObjectEnd);
                 // Se a escala de cinza for menor que threshold, indica inicio do objeto
                 if (!insideObject && pixel[0] > axleWhiteColorThreshold) {
                     objectStart = x;
@@ -246,7 +487,7 @@ public class ImageProcessor {
                     insideObject = false;
                     objectEnd = x;
                     int objectLenght = objectEnd - objectStart;
-                    System.out.println("objectLenght " + objectLenght);
+//                    System.out.println("objectLenght " + objectLenght);
                     if (objectLenght >= axleMinSizeThreshold) {
                         totalAxlesCount++;
                     }

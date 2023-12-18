@@ -124,6 +124,8 @@ public class MainController {
 
     private void process() {
         Window.clearImages();
+        axlesRunning.setValue("");
+        liftedAxles.setValue("");
 
         if (selectedImageFile.isNull().get()) {
             return;
