@@ -69,7 +69,7 @@ public class ImageProcessor {
             // ### Gray ###
             Mat srcGray = new Mat();
             Imgproc.cvtColor(imageNoGround, srcGray, Imgproc.COLOR_BGR2GRAY);
-            Window.addImage(srcGray, "Gray Image", heightProperty);
+//            Window.addImage(srcGray, "Gray Image", heightProperty); // TODO uncomment
 
 
             // ### Blur ###
@@ -77,7 +77,7 @@ public class ImageProcessor {
             if (blur) {
                 Size blurKernelSize = new Size(blurKernel, blurKernel);
                 Imgproc.blur(srcGray, blurSrc, blurKernelSize);
-                Window.addImage(blurSrc, "Blur", heightProperty);
+//                Window.addImage(blurSrc, "Blur", heightProperty); // TODO uncomment
             } else {
                 srcGray.copyTo(blurSrc);
             }
@@ -123,12 +123,12 @@ public class ImageProcessor {
             // ### Crop Vehicle Axles ROI ###
             Rect vehicleRect = new Rect(0, 0, vehicleFloorEdgesImage.cols(), vehicleFloorCutPoint); // recorta o chão
             Mat imageVehicleNoAxles = new Mat(blurSrc, vehicleRect);
-            Window.addImage(imageVehicleNoAxles, "Croped Vehicle", heightProperty);
+//            Window.addImage(imageVehicleNoAxles, "Croped Vehicle", heightProperty); // TODO uncomment
 
 
             // Get the ROI with the axles
             Rect vehicleAxlesROIRect = new Rect(0, vehicleRect.height, blurSrc.cols(), blurSrc.rows() - vehicleRect.height); // remover o chão
-            System.out.println("ROI height: " + vehicleAxlesROIRect.height);
+//            System.out.println("ROI height: " + vehicleAxlesROIRect.height);
             Mat vehicleAxlesImage = new Mat(blurSrc, vehicleAxlesROIRect);
             Window.addImage(vehicleAxlesImage, "Vehicle Axles ROI", heightProperty);
 
@@ -158,7 +158,7 @@ public class ImageProcessor {
             // Novo blur pra suavizar as bordas dos brancos trocados
             Size blurKernelSize = new Size(blurKernel, blurKernel);
             Imgproc.blur(vehicleAxlesImage, vehicleAxlesImageNewBlur, blurKernelSize);
-            Window.addImage(vehicleAxlesImageNewBlur, "Blur ROI", heightProperty);
+//            Window.addImage(vehicleAxlesImageNewBlur, "Blur ROI", heightProperty); // TODO uncomment
 
 
 
@@ -196,7 +196,7 @@ public class ImageProcessor {
 
 
             int aspectRatio = segmentedImage.width() / segmentedImage.height();
-            System.out.println("aspectRatio " + aspectRatio);
+//            System.out.println("aspectRatio " + aspectRatio);
 
             Mat gapClosedImage = new Mat();
 
@@ -436,19 +436,116 @@ public class ImageProcessor {
             Mat newHierarchy = new Mat();
             Imgproc.findContours(filledImage, newContours, newHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 
-            for (int i = 0; i < newContours.size(); i++) {
-                MatOfPoint contour = newContours.get(i);
+            Mat newContoursTestPointsImage = new Mat(filledImage.size() ,CvType.CV_8UC1, Scalar.all(0)); // plot all contours points
+
+
+            int newLiftedAxlesCount = 0;
+            int newRunningAxlesCount = 0;
+
+
+            for (int count = 0; count < newContours.size(); count++) {
+//                if (count != 2) continue; // TODO remove
+
+                MatOfPoint contour = newContours.get(count);
                 Scalar color = new Scalar(255, 0, 0); // White color (you can choose your own color)
 
-//                System.out.println("new contour " + i);
+
+                // Draw only the current contour to check
+                for(int i = 0; i < contour.size().width; i++){
+                    for (int j=0; j < contour.size().height; j++) {
+                        double[] point = contour.get(j, i);
+//                        System.out.print("(" + (int) point[0] + ", " + (int) point[1] + ") ");
+
+                        // Testar imprimir os pontos
+                        Imgproc.line(newContoursTestPointsImage, new Point(point[0], point[1]), new Point(point[0], point[1]), Scalar.all(250), 1);
+
+                    }
+                }
+
+                double maxAxleHeight = 0;
+                double minX = Double.MAX_VALUE;
+                double maxX = 0;
+
+//                for(int i = 0; i < contour.size().width; i++){
+//                    for (int j=0; j < contour.size().height; j++) {
+//                        double[] point = contour.get(j, i);
+//                        System.out.print("(" + (int) point[0] + ", " + (int) point[1] + ") ");
+//                        if (point[1] < minHeight) {
+//                            minHeight = (int) point[1];
+//                        }
+//                    }
+//                }
+
+
+                Point[] points = contour.toArray();
+                for (int i =0; i < points.length; i++) {
+                    Point point = points[i];
+//                    System.out.print("(" + point.x + ", " + point.y + ") ");
+                    if (point.y > maxAxleHeight) {
+                            maxAxleHeight = point.y;
+                        }
+                    if (point.x < minX) {
+                        minX = point.x;
+                    }
+                    if (point.x > maxX) {
+                        maxX = point.x;
+                    }
+                }
+
+                int minAxleWidthThreashold = 50;
+
+
+                // for larger images, we will have larger axles. So we need to adjust the threshold
+                // 50 - 1200
+                // 20 - 137
+                double calculatedMinAxleThreshold = filledImage.width() * 0.10;
+                // avoid having a very large threshold for very wide images
+                if (calculatedMinAxleThreshold > minAxleWidthThreashold) {
+                    calculatedMinAxleThreshold = minAxleWidthThreashold;
+                }
+
+
+
+                // check for noise
+                double realCountourWidth = maxX - minX;
+
+
+                int roiHeight = filledImage.height();
+                System.out.println("axle \t" + count + " - roiHeight \t" + roiHeight + " axleHeight \t" + maxAxleHeight +
+                        " diff \t" + (roiHeight - maxAxleHeight) + " minX \t" + minX +
+                        " maxX \t" + maxX + " realCountourWidth \t" + realCountourWidth);
+                System.out.println("image width " + filledImage.width() + " calculatedMinAxleThreshold " + calculatedMinAxleThreshold);
+
+                if (realCountourWidth <= calculatedMinAxleThreshold) {
+                    continue; // discard noise
+                }
+
+                // Testa se o contorno está tocando o chão para identificar eixos levantados de eixos rodando.
+                if ( roiHeight - maxAxleHeight > 1 ) {
+                    // eixo levantado
+                    newLiftedAxlesCount++;
+                } else {
+                    // eixo rodando
+                    newRunningAxlesCount++;
+                }
+
+//                System.out.println("new contour " + count + " width " + contour.width() + " height " + contour.height() + " roiHeight " + roiHeight
+//                + " maxHeight " + maxHeight);
 //                System.out.println("--------------> new contourArea: " + Imgproc.contourArea(contour)); //TODO uncomment
 
                 // Draw and fill the contour on the blank image
 //                Imgproc.drawContours(newContoursImage, newContours, i, color, Core.FILLED, Imgproc.LINE_8, hierarchy, 0, new Point());
             }
-            Imgproc.drawContours(newContoursImage, newContours, -1, Scalar.all(250), Core.FILLED, Imgproc.LINE_8, newHierarchy, 50, new Point());
 
+            System.out.println("count: lifted " + newLiftedAxlesCount + " running " + newRunningAxlesCount);
+
+            Window.addImage(newContoursTestPointsImage, "New* Test Countourns Points", heightProperty);
+
+
+            Imgproc.drawContours(newContoursImage, newContours, -1, Scalar.all(250), Core.FILLED, Imgproc.LINE_8, newHierarchy, 50, new Point());
             Window.addImage(newContoursImage, "New Contours", heightProperty);
+
+
 
 
 
@@ -494,10 +591,12 @@ public class ImageProcessor {
                     lastObjectEnd = objectEnd;
                 }
             }
-            System.out.println("totalAxlesCount " + totalAxlesCount);
+            System.out.println("old method totalAxlesCount " + totalAxlesCount);
 
-            int liftedAxlesCount = 0;
-            int runningAxlesCount = totalAxlesCount - liftedAxlesCount;
+            int liftedAxlesCount = newLiftedAxlesCount;
+            int runningAxlesCount = newRunningAxlesCount;
+
+
 
             // update UI
             Platform.runLater(() -> {
