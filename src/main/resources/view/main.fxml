@@ -51,7 +51,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="700.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
+<VBox prefHeight="700.0" prefWidth="900.0" stylesheets="@../styles/application.css" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.profilometer.controller.MainController">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
@@ -84,10 +84,22 @@
                   <ListView fx:id="lvInputImages" />
                   <Pane id="pane" prefHeight="79.0" prefWidth="200.0" styleClass="pane">
                      <children>
-                        <Label layoutX="14.0" layoutY="14.0" text="Running axles" />
-                        <Label fx:id="lblAxlesRunning" layoutX="120.0" layoutY="14.0" text="Label" />
-                        <Label layoutX="14.0" layoutY="32.0" text="Lifted axles" />
-                        <Label fx:id="lblLiftedAxles" layoutX="120.0" layoutY="32.0" text="Label" />
+                        <Label layoutX="14.0" layoutY="14.0" text="Running axles" textFill="GREEN">
+                           <font>
+                              <Font size="18.0" />
+                           </font></Label>
+                        <Label fx:id="lblAxlesRunning" layoutX="130.0" layoutY="14.0" text="Label" textFill="GREEN">
+                           <font>
+                              <Font name="System Bold" size="18.0" />
+                           </font></Label>
+                        <Label layoutX="14.0" layoutY="52.0" text="Lifted axles" textFill="#bc3ecd">
+                           <font>
+                              <Font size="18.0" />
+                           </font></Label>
+                        <Label fx:id="lblLiftedAxles" layoutX="130.0" layoutY="52.0" text="Label" textFill="#bc3ecd">
+                           <font>
+                              <Font name="System Bold" size="18.0" />
+                           </font></Label>
                      </children>
                   </Pane>
                </children>

@@ -245,7 +245,14 @@ public class ImageProcessor {
             Mat newHierarchy = new Mat();
             Imgproc.findContours(filledImage, newContours, newHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 
-            Mat newContoursTestPointsImage = new Mat(filledImage.size(), CvType.CV_8UC1, Scalar.all(0)); // plot all contours points
+            Mat contoursTestPointsImage = new Mat(filledImage.size(), CvType.CV_8UC1, Scalar.all(0)); // plot all contours points
+
+
+            // New image identifiyng objects
+            Mat identifiedObjectsImage = new Mat(filledImage.size(), CvType.CV_8UC3, Scalar.all(0));
+            filledImage.copyTo(identifiedObjectsImage);
+            // convert it back to color
+            Imgproc.cvtColor(identifiedObjectsImage, identifiedObjectsImage, Imgproc.COLOR_GRAY2BGR);
 
 
             int newLiftedAxlesCount = 0;
@@ -261,11 +268,12 @@ public class ImageProcessor {
                         double[] point = contour.get(j, i);
 
                         // Testar imprimir os pontos
-                        Imgproc.line(newContoursTestPointsImage, new Point(point[0], point[1]), new Point(point[0], point[1]), Scalar.all(250), 1);
+                        Imgproc.line(contoursTestPointsImage, new Point(point[0], point[1]), new Point(point[0], point[1]), Scalar.all(250), 1);
                     }
                 }
 
 
+                double minAxleHeight = Double.MAX_VALUE;
                 double maxAxleHeight = 0;
                 double minX = Double.MAX_VALUE;
                 double maxX = 0;
@@ -273,6 +281,9 @@ public class ImageProcessor {
                 Point[] points = contour.toArray();
                 for (int i = 0; i < points.length; i++) {
                     Point point = points[i];
+                    if (point.y < minAxleHeight) {
+                        minAxleHeight = point.y;
+                    }
                     if (point.y > maxAxleHeight) {
                         maxAxleHeight = point.y;
                     }
@@ -305,23 +316,30 @@ public class ImageProcessor {
                     continue; // discard noise
                 }
 
+                Scalar color;
                 // Testa se o contorno está tocando o chão para diferenciar eixos levantados de eixos rodando.
                 if (roiHeight - maxAxleHeight > 1) {
-                    // eixo levantado
+                    color = new Scalar(205, 62, 188); // purple
                     newLiftedAxlesCount++;
                 } else {
-                    // eixo rodando
+                    color = new Scalar(0, 128, 0); // green
                     newRunningAxlesCount++;
                 }
+
+
+                Rect rect = new Rect(new Point(minX, minAxleHeight), new Point(maxX, maxAxleHeight));
+                Imgproc.rectangle(identifiedObjectsImage, rect, color, 3);
             }
 
             System.out.println("count: lifted " + newLiftedAxlesCount + " running " + newRunningAxlesCount);
 
-            Window.addImage(newContoursTestPointsImage, "New* Test Countourns Points", heightProperty);
+            Window.addImage(contoursTestPointsImage, "Test Countourns Points", heightProperty);
 
             Imgproc.drawContours(newContoursImage, newContours, -1, Scalar.all(250), Core.FILLED, Imgproc.LINE_8, newHierarchy, 50, new Point());
             Window.addImage(newContoursImage, "New Contours", heightProperty);
 
+
+            Window.addImage(identifiedObjectsImage, "Identified Objects", heightProperty);
 
             int liftedAxlesCount = newLiftedAxlesCount;
             int runningAxlesCount = newRunningAxlesCount;
