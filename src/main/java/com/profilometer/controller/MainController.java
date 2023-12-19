@@ -5,7 +5,6 @@ import com.profilometer.service.ConfigService;
 import com.profilometer.ui.Window;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -50,6 +49,22 @@ public class MainController {
     public Spinner<Integer> spinnerSobelKernelSize;
     @FXML
     public Spinner<Double> spinnerSegmentationThreshold;
+    @FXML
+    public Spinner<Double> spinnerVehicleFloorCutoffPercentageFix;
+    @FXML
+    public CheckBox ckROIBlurEnabled;
+    @FXML
+    public Spinner<Integer> spinnerROIBlurKernelSize;
+    @FXML
+    public Spinner<Integer> spinnerAspectRatioThresholdLimit;
+    @FXML
+    public Spinner<Integer> spinnerGapCloseSmallKernel;
+    @FXML
+    public Spinner<Integer> spinnerGapCloseBigKernel;
+    @FXML
+    public Spinner<Integer> spinnerMorphFillKernelWidth;
+    @FXML
+    public Spinner<Integer> spinnerMorphFillKernelHeight;
 
     ObservableList<Path> inputImageFiles = FXCollections.observableArrayList();
     ObjectProperty<Path> selectedImageFile = new SimpleObjectProperty<>();
@@ -64,6 +79,14 @@ public class MainController {
     BooleanProperty segmentationEnabled = new SimpleBooleanProperty();
     IntegerProperty sobelKernelSize = new SimpleIntegerProperty();
     DoubleProperty segmentationThreshold = new SimpleDoubleProperty();
+    DoubleProperty vehicleFloorCutoffPercentageFix = new SimpleDoubleProperty();
+    IntegerProperty roiBlurKernelSize = new SimpleIntegerProperty();
+    BooleanProperty roiBlurEnabled = new SimpleBooleanProperty();
+    IntegerProperty aspectRatioThresholdLimit = new SimpleIntegerProperty();
+    IntegerProperty gapCloseSmallKernel = new SimpleIntegerProperty();
+    IntegerProperty gapCloseBigKernel = new SimpleIntegerProperty();
+    IntegerProperty morphFillKernelWidth = new SimpleIntegerProperty();
+    IntegerProperty morphFillKernelHeight = new SimpleIntegerProperty();
 
     @FXML
     public void initialize() {
@@ -84,7 +107,7 @@ public class MainController {
         // menu da direita
         imageHeight.bind(spinnerImageHeight.valueProperty());
         spinnerImageHeight.setValueFactory(new SpinnerValueFactory
-                .IntegerSpinnerValueFactory(50, 8_000, 500, 50));
+                .IntegerSpinnerValueFactory(50, 10_000, 500, 50));
 
         blurEnabled.bind(ckBlurEnabled.selectedProperty());
         spinnerBlurKernelSize.disableProperty().bind(blurEnabled.not());
@@ -101,6 +124,34 @@ public class MainController {
                 .IntegerSpinnerValueFactory(3, 7, 3, 2));
         spinnerSegmentationThreshold.setValueFactory(new SpinnerValueFactory
                 .DoubleSpinnerValueFactory(1, 100, 4, 0.1));
+
+        vehicleFloorCutoffPercentageFix.bind(spinnerVehicleFloorCutoffPercentageFix.valueProperty());
+        spinnerVehicleFloorCutoffPercentageFix.setValueFactory(new SpinnerValueFactory
+                .DoubleSpinnerValueFactory(0.01, 0.2, 0.1, 0.01));
+
+        roiBlurEnabled.bind(ckROIBlurEnabled.selectedProperty());
+        spinnerROIBlurKernelSize.disableProperty().bind(roiBlurEnabled.not());
+        roiBlurKernelSize.bind(spinnerROIBlurKernelSize.valueProperty());
+        spinnerROIBlurKernelSize.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 15, 3, 2));
+
+        aspectRatioThresholdLimit.bind(spinnerAspectRatioThresholdLimit.valueProperty());
+        spinnerAspectRatioThresholdLimit.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(10, 500, 200, 5));
+        gapCloseSmallKernel.bind(spinnerGapCloseSmallKernel.valueProperty());
+        spinnerGapCloseSmallKernel.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 15, 3, 2));
+        gapCloseBigKernel.bind(spinnerGapCloseBigKernel.valueProperty());
+        spinnerGapCloseBigKernel.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 15, 5, 2));
+
+        morphFillKernelWidth.bind(spinnerMorphFillKernelWidth.valueProperty());
+        spinnerMorphFillKernelWidth.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 97, 15, 2));
+        morphFillKernelHeight.bind(spinnerMorphFillKernelHeight.valueProperty());
+        spinnerMorphFillKernelHeight.setValueFactory(new SpinnerValueFactory
+                .IntegerSpinnerValueFactory(3, 97, 5, 2));
+
     }
 
     @FXML
@@ -123,9 +174,7 @@ public class MainController {
     }
 
     private void process() {
-        Window.clearImages();
-        axlesRunning.setValue("");
-        liftedAxles.setValue("");
+        clearUI();
 
         if (selectedImageFile.isNull().get()) {
             return;
@@ -134,9 +183,19 @@ public class MainController {
         System.out.println(selectedImageFile.get().toString());
         new ImageProcessor().process(selectedImageFile.get().toString(), imageHeight, axlesRunning, liftedAxles,
                 blurEnabled.get(), blurKernelSize.get(),
-                segmentationEnabled.get(), sobelKernelSize.get(), segmentationThreshold.get());
+                segmentationEnabled.get(), sobelKernelSize.get(), segmentationThreshold.get(),
+                vehicleFloorCutoffPercentageFix.get(),
+                roiBlurEnabled.get(), roiBlurKernelSize.get(),
+                aspectRatioThresholdLimit.get(), gapCloseSmallKernel.get(), gapCloseBigKernel.get(),
+                morphFillKernelWidth.get(), morphFillKernelHeight.get()
+        );
     }
 
+    private void clearUI() {
+        Window.clearImages();
+        axlesRunning.setValue("");
+        liftedAxles.setValue("");
+    }
 
     private ListCell<Path> renderCellWithImage() {
         return new ListCell<>() {

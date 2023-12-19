@@ -19,7 +19,11 @@ public class ImageProcessor {
     }
 
     public void process(String imageFile, IntegerProperty heightProperty, StringProperty axlesRunning, StringProperty liftedAxles, boolean applyBlur, int blurKernel,
-                        boolean applySegmentation, int sobelKernel, double segmentationMinThreshold) {
+                        boolean applySegmentation, int sobelKernel, double segmentationMinThreshold,
+                        double vehicleFloorCutoffPercentageFix,
+                        boolean roiBlurEnabled, int roiBlurKernelSize,
+                        int aspectRatioThresholdLimit, int gapCloseSmallKernel, int gapCloseBigKernel,
+                        int morphFillKernelWidth, int morphFillKernelHeight) {
 
         // ### Original Image ###
         Mat src = Imgcodecs.imread(imageFile);
@@ -106,7 +110,7 @@ public class ImageProcessor {
             // Daria para tentar fazer alguma espécia de normalização para melhorar a detecção de motos.
             int vehicleFloorCutPoint = (int) vehicleFloorMean / vehicleFloor.length;
             // Como a média geralmente pega um pouco do chassi, move o ponto de corte um pouco para baixo, para pegar somente as rodas
-            vehicleFloorCutPoint = (int) (vehicleFloorCutPoint * 1.10);
+            vehicleFloorCutPoint = (int) (vehicleFloorCutPoint * (1 + vehicleFloorCutoffPercentageFix)); // default 0.1
 
 
             // Draw vehicle floor cut line
@@ -127,11 +131,14 @@ public class ImageProcessor {
 
 
             Mat vehicleAxlesImageNewBlur = new Mat();
-            // Novo blur pra suavizar as bordas dos brancos trocados
-            Size blurKernelSize = new Size(blurKernel, blurKernel);
-            Imgproc.blur(vehicleAxlesImage, vehicleAxlesImageNewBlur, blurKernelSize);
-            Window.addImage(vehicleAxlesImageNewBlur, "Blur ROI", heightProperty);
-
+            if (roiBlurEnabled) {
+                // Novo blur pra suavizar as bordas dos brancos trocados
+                Size blurKernelSize = new Size(roiBlurKernelSize, roiBlurKernelSize); // default 3
+                Imgproc.blur(vehicleAxlesImage, vehicleAxlesImageNewBlur, blurKernelSize);
+                Window.addImage(vehicleAxlesImageNewBlur, "Blur ROI", heightProperty);
+            } else {
+                vehicleAxlesImage.copyTo(vehicleAxlesImageNewBlur);
+            }
 
             // ### Segmentation (Canny) ###
             // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
@@ -152,17 +159,17 @@ public class ImageProcessor {
 
             Mat gapClosedImage = new Mat();
             // Se for uma imagem muito desproporcional (muito mais larga do que alta), um kernel menor funciona melhor
-            if (aspectRatio >= 200) {
+            if (aspectRatio >= aspectRatioThresholdLimit) { // default 200
                 // ### Small Gap Close ###
                 Mat smallGapClosedImage = new Mat();
-                Size smallGapKernel = new Size(3, 3);
+                Size smallGapKernel = new Size(gapCloseSmallKernel, gapCloseSmallKernel); // default 3
                 Mat smallMorphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, smallGapKernel);
                 Imgproc.morphologyEx(segmentedImage, smallGapClosedImage, Imgproc.MORPH_CLOSE, smallMorphKernel, new Point(-1, -1), 1, Core.BORDER_REFLECT101);
                 Window.addImage(smallGapClosedImage, "Gap Close (Small Kernel)", heightProperty);
                 smallGapClosedImage.copyTo(gapClosedImage);
             } else {
                 // ### Big Gap Close ###
-                Size gapKernel = new Size(5, 5);
+                Size gapKernel = new Size(gapCloseBigKernel, gapCloseBigKernel); // default 5
                 Mat morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, gapKernel);
                 Imgproc.morphologyEx(segmentedImage, gapClosedImage, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1, -1), 2, Core.BORDER_REFLECT101);
                 Window.addImage(gapClosedImage, "Gap Close (Big Kernel)", heightProperty);
@@ -207,7 +214,7 @@ public class ImageProcessor {
             Imgproc.line(imageGapClosedPlusTopBlankLine, new Point(0, 0), new Point(imageGapClosedPlusTopBlankLine.width(), 0), Scalar.all(250), 1);
 
 
-            Window.addImage(imageGapClosedPlusTopBlankLine, "Gap Closed + Top Blank Line", heightProperty);
+            Window.addImage(imageGapClosedPlusTopBlankLine, "Translated Gap Closed + Top Blank Line", heightProperty);
 
 
             // CHAIN_APPROX_SIMPLE does not work for this use case
@@ -228,11 +235,11 @@ public class ImageProcessor {
 
 
             // fill contours
-//            Size kernelSize = new Size(15, 5);
-            Size kernelSize = new Size(15, 5);
+            // Esse kernel vai ser usado no MORPH_OPEN para remover os ruídos
+            Size kernelSize = new Size(morphFillKernelWidth, morphFillKernelHeight); // default 15, 5
             Mat morphKernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, kernelSize);
 
-            Mat filledImage = new Mat(segmentedImage.size(), CvType.CV_8UC1, Scalar.all(0));
+            Mat filledImage = new Mat(segmentedImage.size(), CvType.CV_8UC1, new Scalar(0));
 
             Imgproc.morphologyEx(contoursImage, filledImage, Imgproc.MORPH_OPEN, morphKernel2, new Point(-1, -1), 2);
             Window.addImage(filledImage, "Filled Contours", heightProperty);
@@ -319,10 +326,10 @@ public class ImageProcessor {
                 Scalar color;
                 // Testa se o contorno está tocando o chão para diferenciar eixos levantados de eixos rodando.
                 if (roiHeight - maxAxleHeight > 1) {
-                    color = new Scalar(205, 62, 188); // purple
+                    color = new Scalar(205, 62, 188); // purple (lifted)
                     newLiftedAxlesCount++;
                 } else {
-                    color = new Scalar(0, 128, 0); // green
+                    color = new Scalar(0, 128, 0); // green (running)
                     newRunningAxlesCount++;
                 }
 
