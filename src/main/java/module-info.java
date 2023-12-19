@@ -17,4 +17,6 @@ module com.profilometer {
     exports com.profilometer;
     exports com.profilometer.config;
     exports com.profilometer.controller;
+    exports com.profilometer.model;
+    opens com.profilometer.model to javafx.fxml;
 }
