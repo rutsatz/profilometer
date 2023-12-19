@@ -98,7 +98,7 @@ public class ImageProcessor {
             // ### Crop Vehicle Axles ROI ###
             Rect vehicleRect = new Rect(0, 0, vehicleFloorEdgesImage.cols(), vehicleFloorCutPoint); // recorta o chão
             Mat imageVehicleNoAxles = new Mat(imageWithBlur, vehicleRect);
-            Window.addImage(imageVehicleNoAxles, "Croped Vehicle", heightProperty);
+            Window.addImage(imageVehicleNoAxles, "Cropped Vehicle", heightProperty);
 
 
             // Get the ROI with the axles
@@ -121,9 +121,9 @@ public class ImageProcessor {
             // https://opencv-java-tutorials.readthedocs.io/en/latest/07-image-segmentation.html#canny-edge-detector
             Mat segmentedImage = new Mat();
             if (applySegmentation) {
-                double minThreshold = segmentationMinThreshold;
+                double minThreshold = segmentationMinThreshold; // default 4
                 double maxThreshold = minThreshold * 3; // Canny's recommendation
-                int sobelKernelSize = sobelKernel;
+                int sobelKernelSize = sobelKernel; // default 3
                 boolean useL2gradient = false;
                 Imgproc.Canny(vehicleAxlesImageNewBlur, segmentedImage, minThreshold, maxThreshold, sobelKernelSize, useL2gradient);
                 Window.addImage(segmentedImage, "Segmentation", heightProperty);
